@@ -5,6 +5,7 @@ static const int lockfullscreen     = 1;  /* 1 will force focus on the fullscree
 static const float rootcolor[]      = {0.3, 0.3, 0.3, 1.0};
 static const float bordercolor[]    = {0.5, 0.5, 0.5, 1.0};
 static const float focuscolor[]     = {1.0, 0.0, 0.0, 1.0};
+static const int smartborders       = 1;
 
 static const char *const autostart[] = {
         "sh", "-c", "swaybg --image /xap/local/background", NULL,

@@ -267,7 +267,7 @@ static void quit(const Arg *arg);
 static void quitsignal(int signo);
 static void rendermon(struct wl_listener *listener, void *data);
 static void requeststartdrag(struct wl_listener *listener, void *data);
-static void resize(Client *c, int x, int y, int w, int h, int interact);
+static void resize(Client *c, int x, int y, int w, int h, int interact, int draw_borders);
 static void run(char *startup_cmd);
 static Client *selclient(void);
 static void setcursor(struct wl_listener *listener, void *data);
@@ -784,7 +784,7 @@ closemon(Monitor *m)
 	wl_list_for_each(c, &clients, link) {
 		if (c->isfloating && c->geom.x > m->m.width)
 			resize(c, c->geom.x - m->w.width, c->geom.y,
-				c->geom.width, c->geom.height, 0);
+				c->geom.width, c->geom.height, 0, 1);
 		if (c->mon == m)
 			setmon(c, selmon, c->tags);
 	}
@@ -1486,7 +1486,7 @@ monocle(Monitor *m)
 	wl_list_for_each(c, &clients, link) {
 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 			continue;
-		resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0);
+		resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0, !smartborders);
 	}
 	focusclient(focustop(m), 1);
 }
@@ -1529,12 +1529,12 @@ motionnotify(uint32_t time)
 	if (cursor_mode == CurMove) {
 		/* Move the grabbed client to the new position. */
 		resize(grabc, cursor->x - grabcx, cursor->y - grabcy,
-				grabc->geom.width, grabc->geom.height, 1);
+				grabc->geom.width, grabc->geom.height, 1, 1);
 		return;
 	} else if (cursor_mode == CurResize) {
 		resize(grabc, grabc->geom.x, grabc->geom.y,
 				cursor->x - grabc->geom.x,
-				cursor->y - grabc->geom.y, 1);
+				cursor->y - grabc->geom.y, 1, 1);
 		return;
 	}
 
@@ -1788,7 +1788,7 @@ requeststartdrag(struct wl_listener *listener, void *data)
 }
 
 void
-resize(Client *c, int x, int y, int w, int h, int interact)
+resize(Client *c, int x, int y, int w, int h, int interact, int draw_borders)
 {
 	int min_width = 0, min_height = 0;
 	struct wlr_box *bbox = interact ? &sgeom : &c->mon->w;
@@ -1797,6 +1797,7 @@ resize(Client *c, int x, int y, int w, int h, int interact)
 	c->geom.y = y;
 	c->geom.width = MAX(min_width + 2 * c->bw, w);
 	c->geom.height = MAX(min_height + 2 * c->bw, h);
+	c->bw = draw_borders ? borderpx : 0;
 	applybounds(c, bbox);
 
 	/* Update scene-graph, including borders */
@@ -1923,11 +1924,11 @@ setfullscreen(Client *c, int fullscreen)
 
 	if (fullscreen) {
 		c->prev = c->geom;
-		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0);
+		resize(c, c->mon->m.x, c->mon->m.y, c->mon->m.width, c->mon->m.height, 0, 0);
 	} else {
 		/* restore previous size instead of arrange for floating windows since
 		 * client positions are set by the user and cannot be recalculated */
-		resize(c, c->prev.x, c->prev.y, c->prev.width, c->prev.height, 0);
+		resize(c, c->prev.x, c->prev.y, c->prev.width, c->prev.height, 0, 1);
 	}
 	arrange(c->mon);
 	printstatus();
@@ -1976,7 +1977,7 @@ setmon(Client *c, Monitor *m, unsigned int newtags)
 	}
 	if (m) {
 		/* Make sure window actually overlaps with the monitor */
-		resize(c, c->geom.x, c->geom.y, c->geom.width, c->geom.height, 0);
+		resize(c, c->geom.x, c->geom.y, c->geom.width, c->geom.height, 0, 1);
 		wlr_surface_send_enter(client_surface(c), m->wlr_output);
 		c->tags = newtags ? newtags : m->tagset[m->seltags]; /* assign tags of target monitor */
 		arrange(m);
@@ -2319,7 +2320,7 @@ tagmon(const Arg *arg)
 void
 tile(Monitor *m)
 {
-	unsigned int i, n = 0, h, mw, my, ty, r, oe = enablegaps, ie = enablegaps;
+	unsigned int i, n = 0, h, mw, my, ty, r, oe = enablegaps, ie = enablegaps, draw_borders = 1;
 	Client *c;
 
 	wl_list_for_each(c, &clients, link)
@@ -2331,6 +2332,9 @@ tile(Monitor *m)
 	if (smartgaps == n) {
 		oe = 0; // outer gaps disabled
 	}
+
+	if (n == smartborders)
+		draw_borders = 0;
 
 	if (n > m->nmaster)
 		mw = m->nmaster ? (m->w.width + m->gappiv*ie) * m->mfact : 0;
@@ -2344,12 +2348,12 @@ tile(Monitor *m)
 		if (i < m->nmaster) {
 			r = MIN(n, m->nmaster) - i;
 			h = (m->w.height - my - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
-			resize(c, m->w.x + m->gappov*oe, m->w.y + my, mw - m->gappiv*ie, h, 0);
+			resize(c, m->w.x + m->gappov*oe, m->w.y + my, mw - m->gappiv*ie, h, 0, draw_borders);
 			my += c->geom.height + m->gappih*ie;
 		} else {
 			r = n - i;
 			h = (m->w.height - ty - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
-			resize(c, m->w.x + mw + m->gappov*oe, m->w.y + ty, m->w.width - mw - 2*m->gappov*oe, h, 0);
+			resize(c, m->w.x + mw + m->gappov*oe, m->w.y + ty, m->w.width - mw - 2*m->gappov*oe, h, 0, draw_borders);
 			ty += c->geom.height + m->gappih*ie;
 		}
 		i++;

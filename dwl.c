@@ -1911,6 +1911,8 @@ setfloating(Client *c, int floating)
 {
 	c->isfloating = floating;
 	wlr_scene_node_reparent(c->scene, layers[c->isfloating ? LyrFloat : LyrTile]);
+	if (c->isfloating && !c->bw)
+		resize(c, c->geom.x, c->geom.y, c->geom.width, c->geom.height, 0, 1);
 	arrange(c->mon);
 	printstatus();
 }

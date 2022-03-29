@@ -1282,6 +1282,7 @@ inputdevice(struct wl_listener *listener, void *data)
 	struct wlr_input_device *device = data;
 	uint32_t caps;
 
+    if ( strcmp(device->name, "Video Bus") == 0 ) return;
 	switch (device->type) {
 	case WLR_INPUT_DEVICE_KEYBOARD:
 		createkeyboard(device);

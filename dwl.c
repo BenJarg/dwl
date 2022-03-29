@@ -261,6 +261,7 @@ static void createpointer(struct wlr_pointer *pointer);
 static void cursorframe(struct wl_listener *listener, void *data);
 static void destroydragicon(struct wl_listener *listener, void *data);
 static void destroyidleinhibitor(struct wl_listener *listener, void *data);
+static void cyclelayout(const Arg *arg);
 static void destroylayersurfacenotify(struct wl_listener *listener, void *data);
 static void destroylock(SessionLock *lock, int unlocked);
 static void destroylocksurface(struct wl_listener *listener, void *data);
@@ -1120,13 +1121,36 @@ destroydragicon(struct wl_listener *listener, void *data)
 }
 
 void
+cyclelayout(const Arg *arg)
+{
+	unsigned int newi;
+	for (newi = 0; newi < LENGTH(layouts); newi++)
+		if (&layouts[newi] == selmon->lt[selmon->sellt])
+			break;
+	if (newi == LENGTH(layouts)) // Current layout not in list
+		return;
+	if (arg->ui) {
+		if (newi == LENGTH(layouts) - 1)
+			newi = 0;
+		else
+			newi++;
+	}
+	else {
+		if (newi == 0)
+			newi = LENGTH(layouts) - 1;
+		else
+			newi--;
+	}
+	setlayout(&((Arg) { .v = &layouts[newi] }));
+}
+
+void
 destroyidleinhibitor(struct wl_listener *listener, void *data)
 {
 	/* `data` is the wlr_surface of the idle inhibitor being destroyed,
 	 * at this point the idle inhibitor is still in the list of the manager */
 	checkidleinhibitor(wlr_surface_get_root_surface(data));
 }
-
 void
 destroylayersurfacenotify(struct wl_listener *listener, void *data)
 {

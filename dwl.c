@@ -235,6 +235,7 @@ static void createnotify(struct wl_listener *listener, void *data);
 static void createpointer(struct wlr_input_device *device);
 static void cursorframe(struct wl_listener *listener, void *data);
 static void destroyidleinhibitor(struct wl_listener *listener, void *data);
+static void cyclelayout(const Arg *arg);
 static void destroylayersurfacenotify(struct wl_listener *listener, void *data);
 static void destroynotify(struct wl_listener *listener, void *data);
 static Monitor *dirtomon(enum wlr_direction dir);
@@ -1087,13 +1088,27 @@ cursorframe(struct wl_listener *listener, void *data)
 }
 
 void
+cyclelayout(const Arg *arg)
+{
+    unsigned int newi = selmon->sellt;
+    if (arg->ui) {
+        if (newi == LENGTH(layouts) - 1) newi = 0;
+        else newi++;
+    }
+    else {
+        if (newi == 0) newi = LENGTH(layouts) - 1;
+        else newi--;
+    }
+    setlayout(&((Arg) { .v = &layouts[newi] }));
+}
+
+void
 destroyidleinhibitor(struct wl_listener *listener, void *data)
 {
 	/* I've been testing and at this point the inhibitor has not yet been
 	 * removed from the list, checking if it has at least one item. */
 	wlr_idle_set_enabled(idle, seat, wl_list_length(&idle_inhibit_mgr->inhibitors) <= 1);
 }
-
 void
 destroylayersurfacenotify(struct wl_listener *listener, void *data)
 {

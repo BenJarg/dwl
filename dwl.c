@@ -273,6 +273,8 @@ static void setmon(Client *c, Monitor *m, unsigned int newtags);
 static void setpsel(struct wl_listener *listener, void *data);
 static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
+static void shifttag(const Arg *arg);
+static void shiftview(const Arg *arg);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static void startdrag(struct wl_listener *listener, void *data);
@@ -2143,6 +2145,60 @@ setup(void)
 		fprintf(stderr, "failed to setup XWayland X server, continuing without it\n");
 	}
 #endif
+}
+
+void
+shifttag(const Arg *arg) {
+    Client *sel = selclient();
+    if (!sel) return;
+    if (arg->ui) {
+        unsigned int new = sel->tags << 1;
+        if ((new & TAGMASK) != 0) {
+            sel->tags = new;
+        }
+        else {
+            sel->tags = 1;
+        }
+    }
+    else{
+        unsigned int new = sel->tags >> 1;
+        if ((new & TAGMASK) != 0) {
+            sel->tags = new;
+        }
+        else {
+            sel->tags = 1 << (LENGTH(tags) - 1);
+        }
+    }
+	focusclient(focustop(selmon), 1);
+	arrange(selmon);
+	printstatus();
+}
+
+void
+shiftview(const Arg *arg) {
+    selmon->tagset[selmon->seltags ^ 1] = selmon->tagset[selmon->seltags];
+	selmon->seltags ^= 1; /* toggle sel tagset */
+    if (arg->ui) {
+        unsigned int new = selmon->tagset[selmon->seltags] << 1;
+        if ((new & TAGMASK) != 0) {
+            selmon->tagset[selmon->seltags] = new;
+        }
+        else {
+            selmon->tagset[selmon->seltags] = 1;
+        }
+    }
+    else{
+        unsigned int new = selmon->tagset[selmon->seltags] >> 1;
+        if ((new & TAGMASK) != 0) {
+            selmon->tagset[selmon->seltags] = new;
+        }
+        else {
+            selmon->tagset[selmon->seltags] = 1 << (LENGTH(tags) - 1);
+        }
+    }
+	focusclient(focustop(selmon), 1);
+	arrange(selmon);
+	printstatus();
 }
 
 void

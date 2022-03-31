@@ -176,6 +176,10 @@ struct Monitor {
 	struct wlr_box w;      /* window area, layout-relative */
 	struct wl_list layers[4]; /* LayerSurface::link */
 	const Layout *lt[2];
+	int gappih;           /* horizontal gap between windows */
+	int gappiv;           /* vertical gap between windows */
+	int gappoh;           /* horizontal outer gaps */
+	int gappov;           /* vertical outer gaps */
 	unsigned int seltags;
 	unsigned int sellt;
 	unsigned int tagset[2];
@@ -912,6 +916,10 @@ createmon(struct wl_listener *listener, void *data)
 	/* Initialize monitor state using configured rules */
 	for (size_t i = 0; i < LENGTH(m->layers); i++)
 		wl_list_init(&m->layers[i]);
+	m->gappih = gappih;
+	m->gappiv = gappiv;
+	m->gappoh = gappoh;
+	m->gappov = gappov;
 	m->tagset[0] = m->tagset[1] = 1;
 	for (r = monrules; r < END(monrules); r++) {
 		if (!r->name || strstr(wlr_output->name, r->name)) {
@@ -2277,7 +2285,7 @@ tagmon(const Arg *arg)
 void
 tile(Monitor *m)
 {
-	unsigned int i, n = 0, h, mw, my, ty;
+	unsigned int i, n = 0, h, mw, my, ty, r, oe = enablegaps, ie = enablegaps;
 	Client *c;
 
 	wl_list_for_each(c, &clients, link)
@@ -2285,23 +2293,30 @@ tile(Monitor *m)
 			n++;
 	if (n == 0)
 		return;
+	
+	if (smartgaps == n) {
+		oe = 0; // outer gaps disabled
+	}
 
 	if (n > m->nmaster)
-		mw = m->nmaster ? m->w.width * m->mfact : 0;
+		mw = m->nmaster ? (m->w.width + m->gappiv*ie) * m->mfact : 0;
 	else
-		mw = m->w.width;
-	i = my = ty = 0;
+		mw = m->w.width - 2*m->gappov*oe + m->gappiv*ie;
+	i = 0;
+    my = ty = m->gappoh*oe;
 	wl_list_for_each(c, &clients, link) {
 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 			continue;
 		if (i < m->nmaster) {
-			h = (m->w.height - my) / (MIN(n, m->nmaster) - i);
-			resize(c, m->w.x, m->w.y + my, mw, h, 0);
-			my += c->geom.height;
+			r = MIN(n, m->nmaster) - i;
+			h = (m->w.height - my - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
+			resize(c, m->w.x + m->gappov*oe, m->w.y + my, mw - m->gappiv*ie, h, 0);
+			my += c->geom.height + m->gappih*ie;
 		} else {
-			h = (m->w.height - ty) / (n - i);
-			resize(c, m->w.x + mw, m->w.y + ty, m->w.width - mw, h, 0);
-			ty += c->geom.height;
+			r = n - i;
+			h = (m->w.height - ty - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
+			resize(c, m->w.x + mw + m->gappov*oe, m->w.y + ty, m->w.width - mw - 2*m->gappov*oe, h, 0);
+			ty += c->geom.height + m->gappih*ie;
 		}
 		i++;
 	}

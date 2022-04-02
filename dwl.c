@@ -1066,7 +1066,7 @@ createpointer(struct wlr_pointer *pointer)
 			libinput_device_config_tap_set_button_map(libinput_device, button_map);
 		}
 
-		if (libinput_device_config_scroll_has_natural_scroll(libinput_device))
+		if (libinput_device_config_scroll_has_natural_scroll(libinput_device) && (strcmp(pointer->base.name, "VEN_06CB:00 06CB:CE7E Touchpad") == 0))
 			libinput_device_config_scroll_set_natural_scroll_enabled(libinput_device, natural_scrolling);
 
 		if (libinput_device_config_dwt_is_available(libinput_device))

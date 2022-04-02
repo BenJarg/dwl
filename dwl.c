@@ -1047,7 +1047,7 @@ createpointer(struct wlr_input_device *device)
 			libinput_device_config_tap_set_enabled(libinput_device, drag_lock);
 		}
 
-		if (libinput_device_config_scroll_has_natural_scroll(libinput_device))
+		if (libinput_device_config_scroll_has_natural_scroll(libinput_device) && (strcmp(device->name, "ETPS/2 Elantech Touchpad") == 0))
 			libinput_device_config_scroll_set_natural_scroll_enabled(libinput_device, natural_scrolling);
 
 		if (libinput_device_config_dwt_is_available(libinput_device))

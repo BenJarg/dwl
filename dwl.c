@@ -1486,7 +1486,7 @@ monocle(Monitor *m)
 	wl_list_for_each(c, &clients, link) {
 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 			continue;
-		resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0, !smartborders);
+		resize(c, m->w.x, m->w.y, m->w.width, m->w.height, 0, !smartborders || (wl_list_length(&mons) > 1));
 	}
 	focusclient(focustop(m), 1);
 }
@@ -2344,7 +2344,7 @@ tile(Monitor *m)
 		oe = 0; // outer gaps disabled
 	}
 
-	if (n == smartborders)
+	if ((n == smartborders) && !(wl_list_length(&mons) > 1))
 		draw_borders = 0;
 
 	if (n > m->nmaster)

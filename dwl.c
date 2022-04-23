@@ -1988,7 +1988,10 @@ setmon(Client *c, Monitor *m, unsigned int newtags)
 	}
 	if (m) {
 		/* Make sure window actually overlaps with the monitor */
-		resize(c, c->geom.x, c->geom.y, c->geom.width, c->geom.height, 0, 1);
+        if (c->isfullscreen)
+		    resize(c, m->m.x, m->m.y, m->m.width, m->m.height, 0, 0);
+        else
+		    resize(c, c->geom.x, c->geom.y, c->geom.width, c->geom.height, 0, 1);
 		wlr_surface_send_enter(client_surface(c), m->wlr_output);
 		c->tags = newtags ? newtags : m->tagset[m->seltags]; /* assign tags of target monitor */
 		arrange(m);

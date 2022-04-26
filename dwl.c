@@ -321,6 +321,7 @@ static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void togglefloating(const Arg *arg);
+static void togglefloating_center(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
@@ -2613,6 +2614,20 @@ togglefloating(const Arg *arg)
 	/* return if fullscreen */
 	if (sel && !sel->isfullscreen)
 		setfloating(sel, !sel->isfloating);
+}
+
+void
+togglefloating_center(const Arg *arg)
+{
+	Client *sel = focustop(selmon);
+	/* return if fullscreen */
+	if (sel && !sel->isfullscreen) {
+		setfloating(sel, !sel->isfloating);
+		if (sel->isfloating && sel->mon) {
+			resize(sel, (struct wlr_box){.x = sel->mon->m.x + 0.25 * sel->mon->m.width, .y = sel->mon->m.y + 0.25 * sel->mon->m.height,
+			.width = 0.5 * sel->mon->m.width, .height = 0.5 * sel->mon->m.height}, 0, 1);
+		}
+	}
 }
 
 void

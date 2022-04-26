@@ -2379,8 +2379,12 @@ togglefloating(const Arg *arg)
 {
 	Client *sel = selclient();
 	/* return if fullscreen */
-	if (sel && !sel->isfullscreen)
+	if (sel && !sel->isfullscreen) {
 		setfloating(sel, !sel->isfloating);
+        if (sel->isfloating && sel->mon) {
+		    resize(sel, sel->mon->m.x + 0.25 * sel->mon->m.width, sel->mon->m.y + 0.25 * sel->mon->m.height, 0.5 * sel->mon->m.width, 0.5 * sel->mon->m.height, 0, 1);
+        }
+    } 
 }
 
 void

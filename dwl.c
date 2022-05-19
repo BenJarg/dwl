@@ -224,6 +224,7 @@ static void chvt(const Arg *arg);
 static void cleanup(void);
 static void cleanupkeyboard(struct wl_listener *listener, void *data);
 static void cleanupmon(struct wl_listener *listener, void *data);
+static void client_info_dump(const Arg *arg);
 static void closemon(Monitor *m);
 static void commitlayersurfacenotify(struct wl_listener *listener, void *data);
 static void commitnotify(struct wl_listener *listener, void *data);
@@ -775,6 +776,33 @@ cleanupmon(struct wl_listener *listener, void *data)
 	focusclient(focustop(selmon), 1);
 	closemon(m);
 	free(m);
+}
+
+static void client_info_dump(const Arg *arg) {
+	const char *appid, *title;
+
+	Client *c = selclient();
+	if (!c) {
+		fprintf(stderr, "No client selected!\n");
+		return;
+	}
+
+	fprintf(stderr, "Requested client info:\n");
+	if ((appid = client_get_appid(c)))
+		fprintf(stderr, "appid: %s\n", appid);
+	else
+		fprintf(stderr, "No appid\n");
+	if ((title = client_get_title(c)))
+		fprintf(stderr, "title: %s\n", title);
+	else
+		fprintf(stderr, "No title\n");
+
+	fprintf(stderr, "floating: %d\n", c->isfloating);
+	fprintf(stderr, "fullscreen: %d\n", c->isfullscreen);
+	fprintf(stderr, "urgent: %d\n", c->isurgent);
+#ifdef XWAYLAND
+	fprintf(stderr, "XWayland: %d\n", (c->type == X11Managed));
+#endif
 }
 
 void

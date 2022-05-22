@@ -529,11 +529,13 @@ void
 arrange(Monitor *m)
 {
 	Client *c;
+	fprintf(stderr, "arrange: arranging...\n");
 	wl_list_for_each(c, &clients, link)
 		wlr_scene_node_set_enabled(c->scene, VISIBLEON(c, c->mon));
 
 	if (m->lt[m->sellt]->arrange)
 		m->lt[m->sellt]->arrange(m);
+	fprintf(stderr, "arrange: arranged...\n");
 	/* TODO recheck pointer focus here... or in resize()? */
 }
 
@@ -543,6 +545,7 @@ arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area, int 
 	LayerSurface *layersurface;
 	struct wlr_box full_area = m->m;
 
+	fprintf(stderr, "arrangelayer: starting...\n");
 	wl_list_for_each(layersurface, list, link) {
 		struct wlr_layer_surface_v1 *wlr_layer_surface = layersurface->layer_surface;
 		struct wlr_layer_surface_v1_state *state = &wlr_layer_surface->current;
@@ -613,6 +616,7 @@ arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area, int 
 		wlr_scene_node_set_position(layersurface->scene, box.x, box.y);
 		wlr_layer_surface_v1_configure(wlr_layer_surface, box.width, box.height);
 	}
+	fprintf(stderr, "arrangelayer: stopped\n");
 }
 
 void
@@ -752,6 +756,7 @@ cleanupkeyboard(struct wl_listener *listener, void *data)
 	wl_list_remove(&kb->modifiers.link);
 	wl_list_remove(&kb->key.link);
 	wl_list_remove(&kb->destroy.link);
+	fprintf(stderr, "cleanupkeyboard: freeing %p\n", kb);
 	free(kb);
 }
 
@@ -775,6 +780,7 @@ cleanupmon(struct wl_listener *listener, void *data)
 
 	focusclient(focustop(selmon), 1);
 	closemon(m);
+	fprintf(stderr, "cleanupmon: freeing %p\n", m);
 	free(m);
 }
 
@@ -829,6 +835,7 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
 	struct wlr_output *wlr_output = wlr_layer_surface->output;
 	Monitor *m;
 
+	fprintf(stderr, "commitlayersurfacenotify: LayerSurface address: %p\n", layersurface);
 	wlr_scene_node_reparent(layersurface->scene,
 			layers[wlr_layer_surface->current.layer]);
 
@@ -847,6 +854,7 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
 			&layersurface->link);
 	}
 	arrangelayers(m);
+	fprintf(stderr, "commitlayersurfacenotify: done \n");
 }
 
 void
@@ -910,6 +918,7 @@ createlayersurface(struct wl_listener *listener, void *data)
 	}
 
 	layersurface = ecalloc(1, sizeof(LayerSurface));
+	fprintf(stderr, "createlayersurface: Allocating LayerSurface at: %p\n", layersurface);
 	layersurface->type = LayerShell;
 	LISTEN(&wlr_layer_surface->surface->events.commit,
 		&layersurface->surface_commit, commitlayersurfacenotify);
@@ -1051,6 +1060,7 @@ createnotify(struct wl_listener *listener, void *data)
 
 	/* Allocate a Client for this surface */
 	c = xdg_surface->data = ecalloc(1, sizeof(*c));
+    fprintf(stderr, "createnotify: Allocating client at %p\n", c);
 	c->surface.xdg = xdg_surface;
 	c->bw = borderpx;
 
@@ -1135,12 +1145,15 @@ destroyidleinhibitor(struct wl_listener *listener, void *data)
 {
 	/* I've been testing and at this point the inhibitor has not yet been
 	 * removed from the list, checking if it has at least one item. */
+	fprintf(stderr, "destroyidleinhibitor: Destroying\n");
 	wlr_idle_set_enabled(idle, seat, wl_list_length(&idle_inhibit_mgr->inhibitors) <= 1);
+	fprintf(stderr, "destroyidleinhibitor: Destroyed\n");
 }
 void
 destroylayersurfacenotify(struct wl_listener *listener, void *data)
 {
 	LayerSurface *layersurface = wl_container_of(listener, layersurface, destroy);
+	fprintf(stderr, "destroylayersurfacenotify: LayerSurface address: %p\n", layersurface);
 
 	if (layersurface->layer_surface->mapped)
 		unmaplayersurface(layersurface);
@@ -1155,7 +1168,9 @@ destroylayersurfacenotify(struct wl_listener *listener, void *data)
 			arrangelayers(m);
 		layersurface->layer_surface->output = NULL;
 	}
+	fprintf(stderr, "destroylayersurfacenotify: freeing %p\n", layersurface);
 	free(layersurface);
+	fprintf(stderr, "destroylayersurfacenotify: freed\n");
 }
 
 void
@@ -1163,6 +1178,7 @@ destroynotify(struct wl_listener *listener, void *data)
 {
 	/* Called when the surface is destroyed and should never be shown again. */
 	Client *c = wl_container_of(listener, c, destroy);
+	fprintf(stderr, "destroynotify: LayerSurface address: %p\n", c);
 	wl_list_remove(&c->map.link);
 	wl_list_remove(&c->unmap.link);
 	wl_list_remove(&c->destroy.link);
@@ -1175,7 +1191,8 @@ destroynotify(struct wl_listener *listener, void *data)
 		wl_list_remove(&c->activate.link);
 	} else
 #endif
-		wl_list_remove(&c->commit.link);
+	wl_list_remove(&c->commit.link);
+	fprintf(stderr, "destroynotify: freeing %p\n", c);
 	free(c);
 }
 
@@ -1210,6 +1227,7 @@ focusclient(Client *c, int lift)
 	struct wlr_keyboard *kb;
 	int i;
 
+	fprintf(stderr, "focusclient: focusing...\n");
 	/* Raise client in stacking order if requested */
 	if (c && lift)
 		wlr_scene_node_raise_to_top(c->scene);
@@ -1283,6 +1301,7 @@ focusclient(Client *c, int lift)
 
 	/* Activate the new client */
 	client_activate_surface(client_surface(c), 1);
+	fprintf(stderr, "focusclient: focused\n");
 }
 
 void
@@ -1467,6 +1486,7 @@ void
 maplayersurfacenotify(struct wl_listener *listener, void *data)
 {
 	LayerSurface *layersurface = wl_container_of(listener, layersurface, map);
+	fprintf(stderr, "maplayersurfacenotify: LayerSurface address: %p\n", layersurface);
 	wlr_surface_send_enter(layersurface->layer_surface->surface,
 		layersurface->layer_surface->output);
 	motionnotify(0);
@@ -2522,6 +2542,7 @@ toggleview(const Arg *arg)
 void
 unmaplayersurface(LayerSurface *layersurface)
 {
+	fprintf(stderr, "unmaplayersurface: LayerSurface address: %p\n", layersurface);
 	layersurface->layer_surface->mapped = 0;
 	if (layersurface->layer_surface->surface ==
 			seat->keyboard_state.focused_surface)
@@ -2533,6 +2554,7 @@ void
 unmaplayersurfacenotify(struct wl_listener *listener, void *data)
 {
 	LayerSurface *layersurface = wl_container_of(listener, layersurface, unmap);
+	fprintf(stderr, "unmaplayersurfacenotify: LayerSurface address: %p\n", layersurface);
 	unmaplayersurface(layersurface);
 }
 
@@ -2684,6 +2706,7 @@ xytonode(double x, double y, struct wlr_surface **psurface,
 	const int *layer;
 	int focus_order[] = { LyrOverlay, LyrTop, LyrFloat, LyrTile, LyrBottom, LyrBg };
 
+	fprintf(stderr, "xytonode: starting...\n");
 	for (layer = focus_order; layer < END(focus_order); layer++) {
 		if ((node = wlr_scene_node_at(layers[*layer], x, y, nx, ny))) {
 			if (node->type == WLR_SCENE_NODE_SURFACE)
@@ -2703,6 +2726,7 @@ xytonode(double x, double y, struct wlr_surface **psurface,
 	if (psurface) *psurface = surface;
 	if (pc) *pc = c;
 	if (pl) *pl = l;
+	fprintf(stderr, "xytonode: stopped\n");
 	return node;
 }
 
@@ -2769,6 +2793,7 @@ createnotifyx11(struct wl_listener *listener, void *data)
 
 	/* Allocate a Client for this surface */
 	c = xwayland_surface->data = ecalloc(1, sizeof(*c));
+    fprintf(stderr, "createnotifyx11: Allocating x11 client at %p\n", c);
 	c->surface.xwayland = xwayland_surface;
 	c->type = xwayland_surface->override_redirect ? X11Unmanaged : X11Managed;
 	c->bw = borderpx;
@@ -2795,6 +2820,7 @@ getatom(xcb_connection_t *xc, const char *name)
 	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(xc, 0, strlen(name), name);
 	if ((reply = xcb_intern_atom_reply(xc, cookie, NULL)))
 		atom = reply->atom;
+	fprintf(stderr, "getatom: freeing %p\n", reply);
 	free(reply);
 
 	return atom;

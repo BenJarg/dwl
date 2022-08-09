@@ -37,6 +37,7 @@
 #include <wlr/types/wlr_presentation_time.h>
 #include <wlr/types/wlr_primary_selection.h>
 #include <wlr/types/wlr_primary_selection_v1.h>
+#include <wlr/types/wlr_relative_pointer_v1.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_screencopy_v1.h>
 #include <wlr/types/wlr_seat.h>
@@ -370,6 +371,7 @@ static struct wlr_output_manager_v1 *output_mgr;
 static struct wlr_gamma_control_manager_v1 *gamma_control_mgr;
 static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
 static struct wlr_cursor_shape_manager_v1 *cursor_shape_mgr;
+static struct wlr_relative_pointer_manager_v1 *rel_ptr_mgr;
 
 static struct wlr_cursor *cursor;
 static struct wlr_xcursor_manager *cursor_mgr;
@@ -1845,6 +1847,10 @@ motionrelative(struct wl_listener *listener, void *data)
 	/* This event is forwarded by the cursor when a pointer emits a _relative_
 	 * pointer motion event (i.e. a delta) */
 	struct wlr_pointer_motion_event *event = data;
+
+	wlr_relative_pointer_manager_v1_send_relative_motion(rel_ptr_mgr, seat, event->time_msec * 1000,
+		event->delta_x, event->delta_y, event->unaccel_dx, event->unaccel_dy);
+
 	/* The cursor doesn't move unless we tell it to. The cursor automatically
 	 * handles constraining the motion to the output layout, as well as any
 	 * special configuration applied for the specific input device which
@@ -2479,6 +2485,8 @@ setup(void)
 	 * HiDPI support). Scaled cursors will be loaded with each output. */
 	cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
 	setenv("XCURSOR_SIZE", "24", 1);
+
+	rel_ptr_mgr = wlr_relative_pointer_manager_v1_create(dpy);
 
 	/*
 	 * wlr_cursor *only* displays an image on screen. It does not move around

@@ -1464,6 +1464,7 @@ incnmaster(const Arg *arg)
 		return;
 	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(selmon->nmaster + arg->i, 0);
 	arrange(selmon);
+	printstatus();
 }
 
 void
@@ -2014,7 +2015,7 @@ printstatus(void)
 		printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
 		printf("%s tags %u %u %u %u\n", m->wlr_output->name, occ, m->tagset[m->seltags],
 				sel, urg);
-		printf("%s layout %s\n", m->wlr_output->name, m->ltsymbol);
+		printf("%s layout %s %d\n", m->wlr_output->name, m->ltsymbol, m->nmaster);
 	}
 	fflush(stdout);
 }

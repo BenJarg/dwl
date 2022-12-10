@@ -324,6 +324,7 @@ static void setfloating(Client *c, int floating);
 static void setfullscreen(Client *c, int fullscreen);
 static void setgamma(struct wl_listener *listener, void *data);
 static void setlayout(const Arg *arg);
+static void setloglevel(const Arg *arg);
 static void setmfact(const Arg *arg);
 static void setmon(Client *c, Monitor *m, uint32_t newtags);
 static void setpsel(struct wl_listener *listener, void *data);
@@ -2353,6 +2354,12 @@ setlayout(const Arg *arg)
 	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, LENGTH(selmon->ltsymbol));
 	arrange(selmon);
 	printstatus();
+}
+
+void
+setloglevel(const Arg *arg)
+{
+	wlr_log_init(arg->ui, NULL);
 }
 
 /* arg > 1.0 will set mfact absolutely */

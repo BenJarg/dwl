@@ -74,6 +74,8 @@
 #define TAGMASK                 ((1u << TAGCOUNT) - 1)
 #define LISTEN(E, L, H)         wl_signal_add((E), ((L)->notify = (H), (L)))
 #define LISTEN_STATIC(E, H)     do { static struct wl_listener _l = {.notify = (H)}; wl_signal_add((E), &_l); } while (0)
+#define TAGMASK_LOW             ((1 << (tagcount / 2)) - 1)
+#define TAGMASK_HIGH            (TAGMASK_LOW << (tagcount / 2))
 
 /* enums */
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
@@ -802,7 +804,9 @@ closemon(Monitor *m)
 			resize(c, (struct wlr_box){.x = c->geom.x - m->w.width, .y = c->geom.y,
 				.width = c->geom.width, .height = c->geom.height}, 0, 0);
 		if (c->mon == m)
-			setmon(c, selmon, c->tags);
+			setmon(c, selmon, TAGMASK_LOW & c->tags ? 
+					TAGMASK_HIGH & (c->tags << (tagcount / 2)) : 
+					TAGMASK_HIGH & c->tags);
 	}
 	focusclient(focustop(selmon), 1);
 	printstatus();
@@ -1001,6 +1005,7 @@ createmon(struct wl_listener *listener, void *data)
 	size_t i;
 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
 	unsigned int j;
+	Client *c;
 	m->wlr_output = wlr_output;
 
 	wlr_output_init_render(wlr_output, alloc, drw);
@@ -1080,6 +1085,12 @@ createmon(struct wl_listener *listener, void *data)
 	else
 		wlr_output_layout_add(output_layout, wlr_output, m->m.x, m->m.y);
 	strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, LENGTH(m->ltsymbol));
+
+	wl_list_for_each(c, &clients, link) {
+		if (c->tags & TAGMASK_HIGH) {
+			setmon(c, m, TAGMASK_LOW & (c->tags >> (tagcount / 2)));
+		}
+	}
 }
 
 void

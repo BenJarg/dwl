@@ -2099,12 +2099,14 @@ printstatus(void)
 			sel = 0;
 		}
 
-		printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
+		printf("%s selmon %u %u\n", m->wlr_output->name, m == selmon, swap_mon);
 		printf("%s tags %u %u %u %u\n", m->wlr_output->name, occ, m->tagset[m->seltags],
 				sel, urg);
 		printf("%s layout %s %d\n", m->wlr_output->name, m->ltsymbol, m->nmaster);
 	}
 	fflush(stdout);
+	if (swap_mon)
+		swap_mon = 0;
 }
 
 void

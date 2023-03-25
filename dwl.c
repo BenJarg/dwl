@@ -1815,7 +1815,7 @@ monocle(Monitor *m)
 		n++;
 	}
 	if (n)
-		snprintf(m->ltsymbol, LENGTH(m->ltsymbol), "[%d]", n);
+		snprintf(m->ltsymbol, LENGTH(m->ltsymbol), "(%d)", n);
 	if ((c = focustop(m)))
 		wlr_scene_node_raise_to_top(&c->scene->node);
 }

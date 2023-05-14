@@ -136,6 +136,7 @@ typedef struct {
 	uint32_t tags;
 	int isfloating, isurgent, isfullscreen;
 	uint32_t resize; /* configure serial of a pending resize */
+	uint32_t vertsize;
 } Client;
 
 typedef struct {
@@ -332,6 +333,7 @@ static void setmon(Client *c, Monitor *m, uint32_t newtags);
 static void setpsel(struct wl_listener *listener, void *data);
 static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
+static void setvertsize(const Arg *arg);
 static void shifttag(const Arg *arg);
 static void shiftview(const Arg *arg);
 static void spawn(const Arg *arg);
@@ -493,6 +495,7 @@ applyrules(Client *c)
 	const Rule *r;
 	Monitor *mon = selmon, *m;
 
+	c->vertsize = 1;
 	c->isfloating = client_is_float_type(c);
 	if (!(appid = client_get_appid(c)))
 		appid = broken;
@@ -2639,6 +2642,21 @@ setup(void)
 #endif
 }
 
+void
+setvertsize(const Arg *arg)
+{
+	Client *sel = focustop(selmon);
+
+	if (!arg || !sel)
+		return;
+	if (-1 * arg->i >= (int) sel->vertsize)
+		sel->vertsize = 1;
+	else
+		sel->vertsize += arg->i;
+	arrange(selmon);
+}
+
+void
 shifttag(const Arg *arg) {
 	Client *sel = focustop(selmon);
 	if (!sel) return;
@@ -2753,24 +2771,31 @@ tagmon(const Arg *arg)
 void
 tile(Monitor *m)
 {
-	unsigned int i, n = 0, mw, my, ty, r, oe = enablegaps, ie = enablegaps, draw_borders = 1;
+	unsigned int i, n = 0, mw, my, ty, r, oe = enablegaps, ie = enablegaps, draw_borders = 1, cutoff = m->nmaster;
 	Client *c;
 
-	wl_list_for_each(c, &clients, link)
-		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen)
-			n++;
+	i = 0;
+	wl_list_for_each(c, &clients, link) {
+		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
+			continue;
+		n += c->vertsize;
+		if (i < m->nmaster) {
+			cutoff += (c->vertsize - 1);
+		}
+		i++;
+	}
 	if (n == 0)
 		return;
 	
-	if (smartgaps == n) {
+	if (smartgaps && n == 1) {
 		oe = 0; // outer gaps disabled
 	}
 
 	if ((n == smartborders) && !(wl_list_length(&mons) > 1))
 		draw_borders = 0;
 
-	if (n > m->nmaster)
-		mw = m->nmaster ? (m->w.width + m->gappiv*ie) * m->mfact : 0;
+	if (n > cutoff)
+		mw = cutoff ? (m->w.width + m->gappiv*ie) * m->mfact : 0;
 	else
 		mw = m->w.width - 2*m->gappov*oe + m->gappiv*ie;
 	i = 0;
@@ -2778,18 +2803,20 @@ tile(Monitor *m)
 	wl_list_for_each(c, &clients, link) {
 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 			continue;
-		if (i < m->nmaster) {
-			r = MIN(n, m->nmaster) - i;
+		if (i < cutoff) {
+			r = MIN(n, cutoff) - i;
 			resize(c, (struct wlr_box){.x = m->w.x + m->gappov*oe, .y = m->w.y + my, .width = mw - m->gappiv*ie,
-				.height = (m->w.height - my - m->gappoh*oe - m->gappih*ie * (r - 1)) / r}, 0, draw_borders);
+				.height = c->vertsize * (m->w.height - my - m->gappoh*oe - m->gappih*ie * (r - 1)) / r +
+				(c->vertsize - 1) * m->gappih*ie}, 0, draw_borders);
 			my += c->geom.height + m->gappih*ie;
 		} else {
 			r = n - i;
 			resize(c, (struct wlr_box){.x = m->w.x + mw + m->gappov*oe, .y = m->w.y + ty, .width = m->w.width - mw - 2*m->gappov*oe, 
-				.height = (m->w.height - ty - m->gappoh*oe - m->gappih*ie * (r - 1)) / r}, 0, draw_borders);
+				.height = c->vertsize * (m->w.height - ty - m->gappoh*oe - m->gappih*ie * (r - 1)) / r +
+				(c->vertsize - 1) * m->gappih*ie}, 0, draw_borders);
 			ty += c->geom.height + m->gappih*ie;
 		}
-		i++;
+		i += c->vertsize;
 	}
 }
 

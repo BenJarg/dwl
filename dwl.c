@@ -2,6 +2,7 @@
  * See LICENSE file for copyright and license details.
  */
 #include <assert.h>
+#include <execinfo.h>
 #include <getopt.h>
 #include <libinput.h>
 #include <linux/input-event-codes.h>
@@ -1537,6 +1538,18 @@ handlesig(int signo)
 				}
 			}
 		}
+	} else if (signo == SIGSEGV || signo == SIGABRT || signo == SIGBUS) {
+		void *array[30];
+		size_t size;
+		time_t now;
+
+		time(&now);
+
+		size = backtrace(array, 30);
+
+		fprintf(stderr, "dwl: received signal %d at %s", signo, ctime(&now));
+		backtrace_symbols_fd(array, size, STDERR_FILENO);
+		quit(NULL);
 	} else if (signo == SIGINT || signo == SIGTERM) {
 		quit(NULL);
 	}
@@ -2439,7 +2452,7 @@ setsel(struct wl_listener *listener, void *data)
 void
 setup(void)
 {
-	int i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
+	int i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE, SIGSEGV, SIGABRT, SIGBUS};
 	struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = handlesig};
 	sigemptyset(&sa.sa_mask);
 
